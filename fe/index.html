@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Cloud Quiz - Viettel Questions</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="app-container">
+        <!-- Start Screen -->
+        <section id="start-screen" class="screen active">
+            <header class="app-header">
+                <h1 class="glow-text">Cloud Quiz Pro</h1>
+                <p>Nâng tầm kiến thức Cloud của bạn với bộ câu hỏi trắc nghiệm chuyên sâu.</p>
+            </header>
+            
+            <div class="glass-card upload-section">
+                <div class="icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                </div>
+                <h3>Bắt đầu ngay</h3>
+                <p>Dán nội dung từ file Markdown (.md) của bạn vào đây để tạo bài trắc nghiệm.</p>
+                
+                <textarea id="md-input" placeholder="Dán nội dung hoặc kéo thả file .md vào đây... (Ví dụ: Câu 1: ... Đáp án: A)"></textarea>
+                
+                <button id="start-btn" class="primary-btn">
+                    <span>Tạo bài Quiz</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </button>
+                <div class="divider"><span>HOẶC</span></div>
+                <input type="file" id="file-input" accept=".md,.txt" hidden>
+                <button id="browse-btn" class="secondary-btn">Chọn file từ máy tính</button>
+            </div>
+        </section>
+
+        <!-- Quiz Screen -->
+        <section id="quiz-screen" class="screen">
+            <div class="quiz-header">
+                <div class="progress-container">
+                    <div class="progress-info">
+                        <span id="question-number">Câu hỏi 1/10</span>
+                        <span id="score-tracker">Đúng: 0</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card question-card">
+                <h2 id="question-text">Đang tải câu hỏi...</h2>
+                <div id="options-container" class="options-grid">
+                    <!-- Options will be injected here -->
+                </div>
+            </div>
+
+            <div class="quiz-footer">
+                <button id="prev-btn" class="nav-btn" disabled>Câu trước</button>
+                <button id="next-btn" class="nav-btn">Câu tiếp theo</button>
+            </div>
+        </section>
+
+        <!-- Results Screen -->
+        <section id="result-screen" class="screen">
+            <div class="glass-card result-card">
+                <div class="result-icon">
+                    <div class="confetti"></div>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <path d="M22 4L12 14.01l-3-3"/>
+                    </svg>
+                </div>
+                <h2>Hoàn thành!</h2>
+                <div class="score-display">
+                    <span id="final-score">8/10</span>
+                    <p>điểm của bạn</p>
+                </div>
+                <div id="result-message">Tuyệt vời! Bạn đã nắm vững kiến thức này.</div>
+                
+                <div class="result-stats">
+                    <div class="stat">
+                        <span id="stat-total">10</span>
+                        <label>Tổng số</label>
+                    </div>
+                    <div class="stat">
+                        <span id="stat-correct" class="text-success">8</span>
+                        <label>Chính xác</label>
+                    </div>
+                    <div class="stat">
+                        <span id="stat-wrong" class="text-error">2</span>
+                        <label>Sai</label>
+                    </div>
+                </div>
+
+                <div class="result-actions">
+                    <div class="action-row">
+                        <button id="copy-btn" class="secondary-btn" onclick="quizApp.copyResults()">Sao chép kết quả</button>
+                    </div>
+                    <button id="redo-wrong-btn" class="secondary-btn">Làm lại câu sai</button>
+                    <button id="restart-btn" class="primary-btn">Làm lại tất cả</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        // Expose instance for onclick handlers
+        window.addEventListener('DOMContentLoaded', () => {
+            window.quizApp = new QuizApp();
+        });
+    </script>
+</body>
+</html>
