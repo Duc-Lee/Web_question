@@ -126,7 +126,7 @@ class QuizApp {
         
         // Split into potential blocks based on common patterns (Double newlines are standard separators)
         // We look for anything that looks like a question start to split more reliably
-        let questionBlocks = text.split(/(?:\n\s*\n|^)(?=(?:#+\s*|(?:\*\*|))?(?:Câu|Question|Q|C|Ques|Part|)\s*(?:\d+[:.]?|)[:.]?\s*(?:\*\*|)?)/i);
+        let questionBlocks = text.split(/(?:\n\s*\n|^)(?=(?:#+\s*|(?:\*\*|))?(?:Câu|Question|Q|C|Ques|Part|Module|Unit|)\s*\d*\s*[:.-]?\s*(?:\*\*|)?)/i);
         
         // Filter out empty blocks
         questionBlocks = questionBlocks.filter(b => b.trim().length > 0);
@@ -173,8 +173,8 @@ class QuizApp {
                     // Remove prefixes like "Câu 1:", "1.", "###", etc. from the first line
                     let cleanedLine = line;
                     if (i === 0) {
-                        cleanedLine = line.replace(/^(?:#+\s*|(?:\*\*|))?(?:Câu|Question|Q|C|Ques|Part)\s*\d*[:.]?\s*/i, '')
-                                           .replace(/^\d+[:.]\s*/, '')
+                        cleanedLine = line.replace(/^(?:#+\s*|(?:\*\*|))?(?:Câu|Question|Q|C|Ques|Part|Module|Unit)\s*\d*\s*[:.-]?\s*/i, '')
+                                           .replace(/^\d+\s*[:.-]\s*/, '')
                                            .replace(/[*#]/g, '');
                     } else {
                         cleanedLine = line.replace(/[*#]/g, '');
