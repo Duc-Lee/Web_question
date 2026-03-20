@@ -121,95 +121,93 @@ class QuizApp {
     parseMarkdown(text) {
         const questions = [];
         
-        // Split by question headers: 
-        // 1. (Simple number), ### Câu 1:, **Câu 1**, Question 1:, Q1:, ### Question 1:
-        // Using a more robust split regex
-        const questionBlocks = text.split(/(?:\n|^)(?:#+\s*|(?:\*\*|))?(?:Câu|Question|Q|C|Ques|Part\s*\d+\s*:|)\s*(\d+)[:.]\s*(?:\*\*|)?/i);
+        // Normalize text: Replace fancy characters, normalize line endings
+        text = text.replace(/[：]/g, ':').replace(/\r\n/g, '\n');
         
-        // Result of split with capturing group (d+) will include the question number in the array
-        // Expected array: [intro, "1", block1, "2", block2, ...]
+        // Split into potential blocks based on common patterns (Double newlines are standard separators)
+        // We look for anything that looks like a question start to split more reliably
+        let questionBlocks = text.split(/(?:\n\s*\n|^)(?=(?:#+\s*|(?:\*\*|))?(?:Câu|Question|Q|C|Ques|Part|)\s*(?:\d+[:.]?|)[:.]?\s*(?:\*\*|)?)/i);
         
-        for (let i = 1; i < questionBlocks.length; i += 2) {
-            const qNum = questionBlocks[i];
-            const block = questionBlocks[i + 1];
-            if (!block) continue;
+        // Filter out empty blocks
+        questionBlocks = questionBlocks.filter(b => b.trim().length > 0);
+        
+        questionBlocks.forEach(block => {
+            const lines = block.split('\n').map(l => l.trim()).filter(l => l !== '');
+            if (lines.length < 2) return;
 
-            const lines = block.trim().split('\n').map(l => l.trim()).filter(l => l !== '');
-            if (lines.length < 2) continue;
-
-            const qText = lines[0].replace(/[*#]/g, '').trim();
+            let qText = '';
             const options = [];
             let correctAnswer = '';
+            let foundOptions = false;
 
-            lines.forEach(line => {
-                // Support: A. text, [A] text, A) text, - A. text
-                const optMatch = line.match(/^(?:-?\s*)?([A-D])[.)\s\]]+(.+)/i);
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                // Detection for options: A. text, [A] text, A) text, - A. text, etc.
+                const optMatch = line.match(/^(?:[-*•]\s*)?([A-E])[.)\s\]\-]+(.+)/i);
+                
                 if (optMatch) {
+                    foundOptions = true;
                     options.push({
                         letter: optMatch[1].toUpperCase(),
-                        text: optMatch[2].replace(/\*\*/g, '').trim()
+                    text: optMatch[2].replace(/\*\*/g, '').trim()
                     });
+                    continue;
                 }
 
-                // Support: Đáp án: A, Answer: A, Result: A, Key: A (Case insensitive, flexible spacing)
-                const ansMatch = line.match(/(?:Đáp án|Answer|Correct|Result|Key|Keys|Ans)[:\s-*]+([A-D])/i);
+                // Detection for answer: "Đáp án: A", "Answer: A", etc.
+                const ansMatch = line.match(/(?:Đáp án|Answer|Correct|Result|Key|Ans|Chọn)[:\s-*]+([A-E])/i);
                 if (ansMatch) {
                     correctAnswer = ansMatch[1].toUpperCase();
+                    continue;
                 }
-            });
 
-            // If no explicit "Đáp án" line, check if a line has only A, B, C, or D wrapped in bold
-            if (!correctAnswer) {
-                const boldAnsMatch = block.match(/\*\*([A-D])\*\*/);
-                if (boldAnsMatch) correctAnswer = boldAnsMatch[1].toUpperCase();
+                // If it's not an option or answer, and we haven't found options yet, it's part of the question text
+                if (!foundOptions) {
+                    // Remove prefixes like "Câu 1:", "1.", "###", etc. from the first line
+                    let cleanedLine = line;
+                    if (i === 0) {
+                        cleanedLine = line.replace(/^(?:#+\s*|(?:\*\*|))?(?:Câu|Question|Q|C|Ques|Part)\s*\d*[:.]?\s*/i, '')
+                                           .replace(/^\d+[:.]\s*/, '')
+                                           .replace(/[*#]/g, '');
+                    } else {
+                        cleanedLine = line.replace(/[*#]/g, '');
+                    }
+                    
+                    cleanedLine = cleanedLine.trim();
+                    if (cleanedLine) {
+                       qText += (qText ? ' ' : '') + cleanedLine;
+                    }
+                } else if (!correctAnswer) {
+                    // If we found options but the line is NOT an option or answer keyword, check if it's a bolded answer like **A**
+                    const boldAnsMatch = line.match(/\*\*([A-E])\*\*/);
+                    if (boldAnsMatch) correctAnswer = boldAnsMatch[1].toUpperCase();
+                }
             }
 
-            if (qText && options.length > 0 && correctAnswer) {
+            // Final check for unlabelled answers (just a single letter on a line after options)
+            if (!correctAnswer && foundOptions) {
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    const line = lines[i].trim();
+                    if (line.match(/^[A-E]$/i)) {
+                        correctAnswer = line.toUpperCase();
+                        break;
+                    }
+                }
+            }
+
+            if (qText && options.length >= 2 && correctAnswer) {
                 questions.push({
                     text: qText,
                     options: options,
                     answer: correctAnswer
                 });
             }
-        }
-
-        // Fallback for simple numbering if the above split didn't yield results
-        if (questions.length === 0) {
-           return this.parseMarkdownFallback(text);
-        }
+        });
 
         return questions;
     }
 
-    parseMarkdownFallback(text) {
-        // More traditional split for simple numbered lists
-        const questions = [];
-        const questionBlocks = text.split(/(?:\n|^)(\d+)[\.)]\s+/);
-        
-        for (let i = 1; i < questionBlocks.length; i += 2) {
-            const block = questionBlocks[i + 1];
-            if (!block) continue;
-            
-            const lines = block.split('\n').filter(l => l.trim() !== '');
-            const qText = lines[0].trim();
-            const options = [];
-            let correctAnswer = '';
-            
-            lines.forEach(line => {
-                const optMatch = line.match(/^\s*([A-D])[\.)]\s*(.+)/i);
-                if (optMatch) {
-                    options.push({ letter: optMatch[1].toUpperCase(), text: optMatch[2].trim() });
-                }
-                const ansMatch = line.match(/(?:Đáp án|Answer|Key)[:\s*]+([A-D])/i);
-                if (ansMatch) correctAnswer = ansMatch[1].toUpperCase();
-            });
-            
-            if (qText && options.length > 0 && correctAnswer) {
-                questions.push({ text: qText, options: options, answer: correctAnswer });
-            }
-        }
-        return questions;
-    }
 
     startQuiz() {
         this.currentQuestionIndex = 0;

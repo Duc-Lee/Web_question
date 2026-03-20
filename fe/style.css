@@ -154,7 +154,12 @@ body {
     color: var(--primary);
 }
 
-.icon-box svg { width: 40px; }
+.icon-box img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    border-radius: 12px;
+}
 
 #md-input {
     width: 100%;
