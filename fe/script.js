@@ -138,6 +138,7 @@ class QuizApp {
             let qText = '';
             const options = [];
             let correctAnswer = '';
+            let correctAnswerValue = ''; // Store value if it's not a single letter
             let foundOptions = false;
 
             for (let i = 0; i < lines.length; i++) {
@@ -155,10 +156,15 @@ class QuizApp {
                     continue;
                 }
 
-                // Detection for answer: "Đáp án: A", "Answer: A", etc.
-                const ansMatch = line.match(/(?:Đáp án|Answer|Correct|Result|Key|Ans|Chọn)[:\s-*]+([A-E])/i);
+                // Detection for answer: "Đáp án: A", "Answer: A", or even "Đáp án: 2"
+                const ansMatch = line.match(/(?:Đáp án|Answer|Correct|Result|Key|Ans|Chọn)[:\s-*]+(.+)/i);
                 if (ansMatch) {
-                    correctAnswer = ansMatch[1].toUpperCase();
+                    const val = ansMatch[1].trim();
+                    if (val.length === 1 && val.match(/[A-E]/i)) {
+                        correctAnswer = val.toUpperCase();
+                    } else {
+                        correctAnswerValue = val;
+                    }
                     continue;
                 }
 
@@ -183,6 +189,12 @@ class QuizApp {
                     const boldAnsMatch = line.match(/\*\*([A-E])\*\*/);
                     if (boldAnsMatch) correctAnswer = boldAnsMatch[1].toUpperCase();
                 }
+            }
+
+            // If we have a value but no letter, try to match the value to an option's text
+            if (!correctAnswer && correctAnswerValue) {
+                const match = options.find(opt => opt.text.toLowerCase() === correctAnswerValue.toLowerCase());
+                if (match) correctAnswer = match.letter;
             }
 
             // Final check for unlabelled answers (just a single letter on a line after options)
