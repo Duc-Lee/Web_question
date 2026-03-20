@@ -82,6 +82,25 @@ class QuizApp {
         }, false);
     }
 
+    handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            this.mdInput.value = event.target.result;
+            // Reset input value to allow re-selecting the same file
+            e.target.value = '';
+            // Provide visual feedback
+            this.handleStart();
+        };
+        reader.onerror = () => {
+            e.target.value = '';
+            alert('Không thể đọc file. Vui lòng thử lại.');
+        };
+        reader.readAsText(file);
+    }
+
     handleStart() {
         const rawText = this.mdInput.value.trim();
         if (!rawText) {
@@ -101,25 +120,30 @@ class QuizApp {
 
     parseMarkdown(text) {
         const questions = [];
-        // Support: **Câu X:, Câu X:, Question X:, QX: 
-        const questionBlocks = text.split(/(?:\*\*|)?(?:Câu|Question|Q)\s*\d+[:.]\s*(?:\*\*|)?/i);
         
-        // Skip introduction
-        questionBlocks.shift();
+        // Split by question headers: 
+        // 1. (Simple number), ### Câu 1:, **Câu 1**, Question 1:, Q1:, ### Question 1:
+        // Using a more robust split regex
+        const questionBlocks = text.split(/(?:\n|^)(?:#+\s*|(?:\*\*|))?(?:Câu|Question|Q|C|Ques|Part\s*\d+\s*:|)\s*(\d+)[:.]\s*(?:\*\*|)?/i);
+        
+        // Result of split with capturing group (d+) will include the question number in the array
+        // Expected array: [intro, "1", block1, "2", block2, ...]
+        
+        for (let i = 1; i < questionBlocks.length; i += 2) {
+            const qNum = questionBlocks[i];
+            const block = questionBlocks[i + 1];
+            if (!block) continue;
 
-        questionBlocks.forEach(block => {
             const lines = block.trim().split('\n').map(l => l.trim()).filter(l => l !== '');
-            
-            if (lines.length < 3) return;
+            if (lines.length < 2) continue;
 
-            // Question text is the first line, removing remaining bold marks
-            const qText = lines[0].replace(/\*\*/g, '').trim();
+            const qText = lines[0].replace(/[*#]/g, '').trim();
             const options = [];
             let correctAnswer = '';
 
             lines.forEach(line => {
-                // Support: A. text, [A] text, A) text
-                const optMatch = line.match(/^([A-D])[.)\s\]]+(.+)/i);
+                // Support: A. text, [A] text, A) text, - A. text
+                const optMatch = line.match(/^(?:-?\s*)?([A-D])[.)\s\]]+(.+)/i);
                 if (optMatch) {
                     options.push({
                         letter: optMatch[1].toUpperCase(),
@@ -127,12 +151,18 @@ class QuizApp {
                     });
                 }
 
-                // Support: Đáp án: A, **Đáp án: A**, Answer: A, Correct: A
-                const ansMatch = line.match(/(?:Đáp án|Answer|Correct|Result)[:\s*]+([A-D])/i);
+                // Support: Đáp án: A, Answer: A, Result: A, Key: A (Case insensitive, flexible spacing)
+                const ansMatch = line.match(/(?:Đáp án|Answer|Correct|Result|Key|Keys|Ans)[:\s-*]+([A-D])/i);
                 if (ansMatch) {
                     correctAnswer = ansMatch[1].toUpperCase();
                 }
             });
+
+            // If no explicit "Đáp án" line, check if a line has only A, B, C, or D wrapped in bold
+            if (!correctAnswer) {
+                const boldAnsMatch = block.match(/\*\*([A-D])\*\*/);
+                if (boldAnsMatch) correctAnswer = boldAnsMatch[1].toUpperCase();
+            }
 
             if (qText && options.length > 0 && correctAnswer) {
                 questions.push({
@@ -141,8 +171,43 @@ class QuizApp {
                     answer: correctAnswer
                 });
             }
-        });
+        }
 
+        // Fallback for simple numbering if the above split didn't yield results
+        if (questions.length === 0) {
+           return this.parseMarkdownFallback(text);
+        }
+
+        return questions;
+    }
+
+    parseMarkdownFallback(text) {
+        // More traditional split for simple numbered lists
+        const questions = [];
+        const questionBlocks = text.split(/(?:\n|^)(\d+)[\.)]\s+/);
+        
+        for (let i = 1; i < questionBlocks.length; i += 2) {
+            const block = questionBlocks[i + 1];
+            if (!block) continue;
+            
+            const lines = block.split('\n').filter(l => l.trim() !== '');
+            const qText = lines[0].trim();
+            const options = [];
+            let correctAnswer = '';
+            
+            lines.forEach(line => {
+                const optMatch = line.match(/^\s*([A-D])[\.)]\s*(.+)/i);
+                if (optMatch) {
+                    options.push({ letter: optMatch[1].toUpperCase(), text: optMatch[2].trim() });
+                }
+                const ansMatch = line.match(/(?:Đáp án|Answer|Key)[:\s*]+([A-D])/i);
+                if (ansMatch) correctAnswer = ansMatch[1].toUpperCase();
+            });
+            
+            if (qText && options.length > 0 && correctAnswer) {
+                questions.push({ text: qText, options: options, answer: correctAnswer });
+            }
+        }
         return questions;
     }
 
@@ -276,7 +341,4 @@ class QuizApp {
     }
 }
 
-// Initialize App
-document.addEventListener('DOMContentLoaded', () => {
-    new QuizApp();
-});
+// Initialize App via index.html scripts to avoid double instantiation
