@@ -126,7 +126,7 @@ class QuizApp {
         
         // Split into potential blocks: double newlines, headers, or question markers
         // We avoid splitting at simple bold text that doesn't look like a question start
-        let questionBlocks = text.split(/(?:\n\s*(?=\n|#+|(?:\*\*|)?(?:Câu|Question|Q|C|Q|Ques|Part|Module|Unit)\s*\d+)||^)/i);
+        let questionBlocks = text.split(/(?:\n\s*(?=\n|#+|(?:\*\*|)?(?:Câu|Question|Q|C|Ques|Part|Module|Unit)\s*\d+))/i);
         
         // Filter out empty blocks
         questionBlocks = questionBlocks.filter(b => b.trim().length > 0);
