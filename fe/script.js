@@ -159,7 +159,7 @@ class QuizApp {
                 // Detection for answer: "Đáp án: A", "Answer: A", or even "Đáp án: 2"
                 const ansMatch = line.match(/(?:Đáp án|Answer|Correct|Result|Key|Ans|Chọn)[:\s-*]+(.+)/i);
                 if (ansMatch) {
-                    const val = ansMatch[1].trim();
+                    const val = ansMatch[1].replace(/[*#_]/g, '').trim();
                     if (val.length === 1 && val.match(/[A-E]/i)) {
                         correctAnswer = val.toUpperCase();
                     } else {
@@ -175,9 +175,9 @@ class QuizApp {
                     if (i === 0) {
                         cleanedLine = line.replace(/^(?:#+\s*|(?:\*\*|))?(?:Câu|Question|Q|C|Ques|Part|Module|Unit)\s*\d*\s*[:.-]?\s*/i, '')
                                            .replace(/^\d+\s*[:.-]\s*/, '')
-                                           .replace(/[*#]/g, '');
+                                           .replace(/[*#_]/g, '');
                     } else {
-                        cleanedLine = line.replace(/[*#]/g, '');
+                        cleanedLine = line.replace(/[*#_]/g, '');
                     }
                     
                     cleanedLine = cleanedLine.trim();
