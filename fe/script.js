@@ -124,9 +124,9 @@ class QuizApp {
         // Normalize text: Replace fancy characters, normalize line endings
         text = text.replace(/[：]/g, ':').replace(/\r\n/g, '\n');
         
-        // Split into potential blocks based on common patterns (Double newlines are standard separators)
-        // We look for anything that looks like a question start to split more reliably
-        let questionBlocks = text.split(/(?:\n\s*\n|^)(?=(?:#+\s*|(?:\*\*|))?(?:Câu|Question|Q|C|Ques|Part|Module|Unit|)\s*\d*\s*[:.-]?\s*(?:\*\*|)?)/i);
+        // Split into potential blocks: double newlines, headers, or question markers
+        // We avoid splitting at simple bold text that doesn't look like a question start
+        let questionBlocks = text.split(/(?:\n\s*(?=\n|#+|(?:\*\*|)?(?:Câu|Question|Q|C|Q|Ques|Part|Module|Unit)\s*\d+)||^)/i);
         
         // Filter out empty blocks
         questionBlocks = questionBlocks.filter(b => b.trim().length > 0);
@@ -159,7 +159,11 @@ class QuizApp {
                 // Detection for answer: "Đáp án: A", "Answer: A", or even "Đáp án: 2"
                 const ansMatch = line.match(/(?:Đáp án|Answer|Correct|Result|Key|Ans|Chọn)[:\s-*]+(.+)/i);
                 if (ansMatch) {
-                    const val = ansMatch[1].replace(/[*#_]/g, '').trim();
+                    let val = ansMatch[1].replace(/[*#_]/g, '').trim();
+                    // Handle cases like "A. text" or "A) text" in the answer line
+                    const subMatch = val.match(/^([A-E])[.)\s\-]/i);
+                    if (subMatch) val = subMatch[1];
+
                     if (val.length === 1 && val.match(/[A-E]/i)) {
                         correctAnswer = val.toUpperCase();
                     } else {
